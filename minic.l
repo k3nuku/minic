@@ -1,6 +1,37 @@
 %{
 #include <stdio.h>
-#include "minic.tab.h"
+
+#define MAX_ARSIZE 100
+
+char symtab[MAX_ARSIZE][MAX_ARSIZE];
+char stringtab[MAX_ARSIZE][MAX_ARSIZE];
+
+int symbol_seq = 0;
+int string_seq = 0;
+
+int table_lookup(char *value, char arr[MAX_ARSIZE][MAX_ARSIZE], int *seq) {
+  int i = 1;
+
+  while (i < *seq) {
+    if (strncmp(arr[i], value, 16) == 0)
+      return i;
+
+    i++;
+  }
+
+  return 0;
+}
+
+int table_insert(char *value, char arr[MAX_ARSIZE][MAX_ARSIZE], int *seq) {
+  int found = 0;
+
+  if ((found = table_lookup(value, arr, seq)) == 0) {
+    strcpy(arr[*seq], value);
+    return ++(*seq);
+  }
+
+  return found;
+}
 %}
 
 LETTER      [a-zA-Z]
@@ -18,67 +49,102 @@ LETANDDIGIT [a-zA-Z0-9]
   if (strcmp(yytext, "int") == 0)
   {
     printf("<INT,>\t\t%s\n", yytext);
-    return(KWTYPE_INT);
+   
   }
   else if (strcmp(yytext, "double") == 0)
   {
     printf("<DOUBLE,>\t\t%s\n", yytext);
-    return(KWTYPE_DOUBLE);
+   
   }
   else if (strcmp(yytext, "str") == 0)
   {
     printf("<STRING,>\t\t%s\n", yytext);
-    return(KWTYPE_STRING);
+   
   }
   else printf("<UNKNOWN_TYPE,>\n");
 }
 
-"if"                    { printf("<IF,>\t\t%s\n", yytext); return(KWSTMT_IF); }
-"while"                 { printf("<WHILE,>\t\t%s\n", yytext); return(KWSTMT_WHILE); }
-"return"                { printf("<RETURN,>\t\t%s\n", yytext); return(KWSTMT_RETURN); }
-"else"                  { printf("<ELSE,>\t\t%s\n", yytext); return(KWSTMT_ELSE); }
+"if"                    { printf("<IF,>\t\t%s\n", yytext); }
+"while"                 { printf("<WHILE,>\t\t%s\n", yytext); }
+"return"                { printf("<RETURN,>\t\t%s\n", yytext); }
+"else"                  { printf("<ELSE,>\t\t%s\n", yytext); }
 
-"print"                 { printf("<PRINT,>\t\t%s\n", yytext); return(KWFUNC_PRINT); }
+"print"                 { printf("<PRINT,>\t\t%s\n", yytext); }
 
-"+"                     { printf("<PLUS,>\t\t%s\n", yytext); return(OP_PLUS); }
-"-"                     { printf("<MINUS,>\t\t%s\n", yytext); return(OP_MINUS); }
-"*"                     { printf("<MULTI,>\t\t%s\n", yytext); return(OP_MULTI); }
-"/"                     { printf("<DIVIDE,>\t\t%s\n", yytext); return(OP_DIVIDE); }
-"="                     { printf("<EQUALS,>\t\t%s\n", yytext); return(EQUALS); }
-">"                     { printf("<LGT,>\t\t%s\n", yytext); return(LGT); }
-">="                    { printf("<LEGT,>\t\t%s\n", yytext); return(LEGT); }
-"<"                     { printf("<RGT,>\t\t%s\n", yytext); return(RGT); }
-"<="                    { printf("<REGT>\t\t%s\n", yytext); return(REGT); }
-"=="                    { printf("<EQ,>\t\t%s\n", yytext); return(EQ); }
-"!="                    { printf("<NEQ,>\t\t%s\n", yytext); return(NEQ); }
-","                     { printf("<COMMA,>\t\t%s\n", yytext); return(COMMA); }
-"("                     { printf("<LPAREN,>\t\t%s\n", yytext); return(LPAREN); }
-")"                     { printf("<RPAREN,>\t\t%s\n", yytext); return(RPAREN); }
-"{"                     { printf("<LCURLY,>\t\t%s\n", yytext); return(LCURLY); }
-"}"                     { printf("<RCURLY,>\t\t%s\n", yytext); return(RCURLY); }
-";"                     { printf("<COLON,>\t\t%s\n", yytext); return(COLON); }
+"+"                     { printf("<OP_PLUS,>\t\t%s\n", yytext); }
+"-"                     { printf("<OP_MINUS,>\t\t%s\n", yytext); }
+"*"                     { printf("<OP_MULTI,>\t\t%s\n", yytext); }
+"/"                     { printf("<OP_DIVIDE,>\t\t%s\n", yytext); }
+"="                     { printf("<OP_EQUALS,>\t\t%s\n", yytext); }
+">"                     { printf("<OP_LGT,>\t\t%s\n", yytext); }
+">="                    { printf("<OP_LEGT,>\t\t%s\n", yytext); }
+"<"                     { printf("<OP_RGT,>\t\t%s\n", yytext); }
+"<="                    { printf("<OP_REGT>\t\t%s\n", yytext); }
+"=="                    { printf("<OP_EQ,>\t\t%s\n", yytext); }
+"!="                    { printf("<OP_NEQ,>\t\t%s\n", yytext); }
+","                     { printf("<COMMA,>\t\t%s\n", yytext); }
+"("                     { printf("<LPAREN,>\t\t%s\n", yytext); }
+")"                     { printf("<RPAREN,>\t\t%s\n", yytext); }
+"{"                     { printf("<LCURLY,>\t\t%s\n", yytext); }
+"}"                     { printf("<RCURLY,>\t\t%s\n", yytext); }
+";"                     { printf("<COLON,>\t\t%s\n", yytext); }
+"\""                    { printf("<DQUOTE,>\t\t%s\n", yytext);}
 
 [a-zA-Z_][a-zA-Z0-9_]* {
   /* ID */
-  printf("<ID, %d>\t\t%s\n", 1, yytext);
-  return(ID);
+  int seq = table_insert(yytext, symtab, &symbol_seq);
+  printf("<ID, %d>\t\t%s\n", seq, yytext);
 }
 
 ["]([^"\\\n]|\\.|\\\n)*["] {
   /* string 역슬래시 있으면 멀티라인, 없으면 그냥 */
   printf("<STRING, %s>\t\t%s\n", yytext, yytext);
-  return(STRING);
+  table_insert(yytext, stringtab, &string_seq);
 }
 
 (-)?([0-9]+\.)[0-9]+([eE][-+][0-9]+)?|(-)?([0-9]+[eE][0-9]+) {
   /* double */
-  printf("<DOUBLE, %s>\t\t%f\n", yytext, atof(yytext));
-  return(DOUBLE);
+  printf("<DOUBLE, %s>\t\t%s\n", yytext, yytext);
 }
 
 -?[0-9]+ {
   /* integer */
-  printf("<INTEGER, %s>\t\t%d\n", yytext, atoi(yytext));
-  return(INTEGER);
+  printf("<INTEGER, %s>\t\t%s\n", yytext, &yytext[(int)strlen(yytext) < 10 ? 0 : (int)strlen(yytext) - 10]);
 }
 %%
+int main(int argc, char **argv) {
+  int flag;
+
+  if (argc < 2) {
+    printf("Usage: ./minic source.c\n");
+    exit(0);
+  }
+
+  FILE *fp = fopen(argv[1], "r");
+
+  if (!fp) {
+   printf("Error occured while opening file to parse\n");
+   exit(0);
+  }
+
+  yyin = fp;
+
+  printf("TOKEN\t\t\tLEXEME\n");
+  printf("----------------------------\n");
+  flag = yylex();
+
+  fclose(yyin);
+
+  printf("\nINDEX\t\tSYMBOL\n--------------------------\n");
+
+  for (int i = 1; i < symbol_seq; i++) {
+    printf("%d\t\t%s\n", i, symtab[i]);
+  }
+
+  printf("\nINDEX\t\tSTRING\n--------------------------\n");
+  for (int j = 1; j < string_seq; j++) {
+    printf("%d\t\t%s\n", j, stringtab[j]);
+  }
+
+  return flag;
+}
