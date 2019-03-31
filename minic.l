@@ -1,84 +1,79 @@
 %{
 #include <stdio.h>
-
-#define PROGRAM       1   // func_list block
-
-#define FUN_LIST      5   // (fun_def fun_list) | (EMPTY)
-#define FUN_DEF       6   // type ID (arg_list) { decl_list stmt_list }
-
-#define ARG_LIST      10  // arg, arg_list
-#define ARG           11  // arg
-
-#define DECL_LIST     15  // type variable
-#define DECL          16  // (decl decl_list) | (EMPTY)
-
-#define TYPE          20  // int | double | str
-
-#define STMT_LIST     25  // stmt stmt_list | stmt
-#define STMT          26  // expr | print_stmt | return_stmt | control_stmt | block
-#define PRINT_STMT    27  // print(expr_list)
-#define RETURN_STMT   28  // return exp
-#define CONTROL_STMT  29  // if_stmt | while_stmt
-#define BLOCK         30  // { stmt_list }
-#define IF_STMT       31  // if (expr) stmt else stmt | if (expr) stmt
-#define WHILE_STMT    32  // (EMPTY) | while (expr) stmt
-
-#define VAR_LIST      35  // (variable, var_list) | variable
-#define VARIABLE      36  // ID
-
-#define EXPR_LIST     40  // (expr, expr_list) | expr
-#define EXPR          41  // value | variable | expr [operators] expr | variable = expr ... 
-#define VALUE         42  // INTEGER | DOUBLE | STRING
-
-#define COMMENT_LINE  50  // //~~
-#define COMMENT_BLOCK 51  // /* ~~ */
+#include "minic.tab.h"
 %}
-letter      [a-zA-Z]
+
+LETTER      [a-zA-Z]
 DIGIT       [0-9]
-INTEGER     [0-9]{1,10}
+USANDLETTER [a-zA-Z_]
+LETANDDIGIT [a-zA-Z0-9]
 
-COLON       \;
-UNDERSCORE  \_
-COMMA       \,
-SLASH       \/
-
-OP_PLUS     \+
-OP_MINUS    \-
-OP_STAR     \*
-OP_DIVIDE   \/
-OP_EQUAL    \=
-OP_LGT      \>
-OP_LEGT     \>=
-OP_RGT      \<
-OP_REGT     \<=
-OP_ISEQUAL  \==
-OP_NEQ      \!=
-
-ST_SQSTART  \(
-ST_SQEND    \)
-ST_MQSTART  \{
-ST_MQEND    \}
-ST_DQUOTE   \"
-
-KW_INT      int
-KW_DOUBLE   double
-KW_STRING   str
-KW_IF       if
-KW_WHILE    while
-KW_RETURN   return
 %%
-({SLASH}{2}).+ {
-  //printf("lex: %s >> _identifier\n", yytext);
-  //strcpy(yylval.str, yytext);
-  //return(_identifier);
+(\/{2}.+)|(\/\*.+\*\/) {
+  /* comment: line */
   printf("comment\n");
 }
-%%
-int main(void) {
-  int tok;
-  while ((tok = yylex()) != 0) {
-    if (tok == COMMENT_LINE)
-      printf("1\n");
-    else printf("2\n");
+
+(int|double|str) {
+/* type detection */
+  if (strcmp(yytext, "int") == 0)
+  {
+    printf("<INT,>\t%s\n", yytext);
+    return(KWTYPE_INT);
   }
+  else if (strcmp(yytext, "double") == 0)
+  {
+    printf("<DOUBLE,>\t%s\n", yytext);
+    return(KWTYPE_DOUBLE);
+  }
+  else if (strcmp(yytext, "str") == 0)
+  {
+    printf("<STRING,>\t%s\n", yytext);
+    return(KWTYPE_STRING);
+  }
+  else printf("<UNKNOWN_TYPE,>\n");
 }
+
+"if"                    { printf("<IF,>\t%s\n", yytext); return(KWSTMT_IF); }
+"while"                 { printf("<WHILE,>\t%s\n", yytext); return(KWSTMT_WHILE); }
+"return"                { printf("<RETURN,>\t%s\n", yytext); return(KWSTMT_RETURN); }
+"else"                  { printf("<ELSE,>\t%s\n", yytext); return(KWSTMT_ELSE); }
+
+"print"                 { printf("<PRINT,>\t%s\n", yytext); return(KWFUNC_PRINT); }
+
+"+"                     { printf("<PLUS,>\t%s\n", yytext); return(OP_PLUS); }
+"-"                     { printf("<MINUS,>\t%s\n", yytext); return(OP_MINUS); }
+"*"                     { printf("<MULTI,>\t%s\n", yytext); return(OP_MULTI); }
+"/"                     { printf("<DIVIDE,>\t%s\n", yytext); return(OP_DIVIDE); }
+"="                     { printf("<EQUALS,>\t%s\n", yytext); return(EQUALS); }
+">"                     { printf("<LGT,>\t%s\n", yytext); return(LGT); }
+">="                    { printf("<LEGT,>\t%s\n", yytext); return(LEGT); }
+"<"                     { printf("<RGT,>\t%s\n", yytext); return(RGT); }
+"<="                    { printf("<REGT>\t%s\n", yytext); return(REGT); }
+"=="                    { printf("<EQ,>\t%s\n", yytext); return(EQ); }
+"!="                    { printf("<NEQ,>\t%s\n", yytext); return(NEQ); }
+","                     { printf("<COMMA,>\t%s\n", yytext); return(COMMA); }
+"("                     { printf("<LPAREN,>\t%s\n", yytext); return(LPAREN); }
+")"                     { printf("<RPAREN,>\t%s\n", yytext); return(RPAREN); }
+"{"                     { printf("<LCURLY,>\t%s\n", yytext); return(LCURLY); }
+"}"                     { printf("<RCURLY,>\t%s\n", yytext); return(RCURLY); }
+";"                     { printf("<COLON,>\t%s\n", yytext); return(COLON); }
+
+({USANDLETTER}{LETANDDIGIT}*)|{LETTER} {
+  /* ID */
+  printf("<ID, %d>\t%s\n", 1, yytext);
+  return(ID);
+}
+
+\".+\" {
+  /* string */
+  printf("value[string]:\t%s\n", yytext);
+  return(STRING);
+}
+
+{DIGIT}+ {
+  /* integer */
+  printf("value[integer]:\t%d\n", atoi(yytext));
+  return(INTEGER);
+}
+%%
