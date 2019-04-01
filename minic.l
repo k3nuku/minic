@@ -90,13 +90,11 @@ LETANDDIGIT [a-zA-Z0-9]
 ";"                     { printf("<COLON,>\t\t%s\n", yytext); }
 "\""                    { printf("<DQUOTE,>\t\t%s\n", yytext);}
 
-[a-zA-Z_][a-zA-Z0-9_]* {
-  /* ID */
-  int seq = table_insert(yytext, symtab, &symbol_seq);
-  printf("<ID, %d>\t\t%s\n", seq, yytext);
-}
+"\n"                    { /* ignoring newline */ }
+" "                     { /* ignoring whitespaces */ }
+"\b"                    { /* ignoring tabs */ }
 
-["]([^"\\\n]|\\.|\\\n)*["] {
+\"(.+)?(.+\n.+)?.+\" {
   /* string 역슬래시 있으면 멀티라인, 없으면 그냥 */
   printf("<STRING, %s>\t\t%s\n", yytext, yytext);
   table_insert(yytext, stringtab, &string_seq);
@@ -110,6 +108,16 @@ LETANDDIGIT [a-zA-Z0-9]
 -?[0-9]+ {
   /* integer */
   printf("<INTEGER, %s>\t\t%s\n", yytext, &yytext[(int)strlen(yytext) < 10 ? 0 : (int)strlen(yytext) - 10]);
+}
+
+(\_)*[A-Za-z][a-zA-Z0-9_]* {
+  /* ID */
+  int seq = table_insert(yytext, symtab, &symbol_seq);
+  printf("<ID, %d>\t\t%s\n", seq, yytext);
+}
+
+. {
+  printf("<ERROR,>\t\t%s\n", yytext);
 }
 %%
 int main(int argc, char **argv) {
@@ -137,12 +145,12 @@ int main(int argc, char **argv) {
 
   printf("\nINDEX\t\tSYMBOL\n--------------------------\n");
 
-  for (int i = 1; i < symbol_seq; i++) {
+  for (int i = 0; i < symbol_seq; i++) {
     printf("%d\t\t%s\n", i, symtab[i]);
   }
 
   printf("\nINDEX\t\tSTRING\n--------------------------\n");
-  for (int j = 1; j < string_seq; j++) {
+  for (int j = 0; j < string_seq; j++) {
     printf("%d\t\t%s\n", j, stringtab[j]);
   }
 
