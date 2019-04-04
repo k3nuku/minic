@@ -92,9 +92,9 @@ LETANDDIGIT [a-zA-Z0-9]
 
 "\n"                    { /* ignoring newline */ }
 " "                     { /* ignoring whitespaces */ }
-"\b"                    { /* ignoring tabs */ }
+"\t"                    { /* ignoring tabs */ }
 
-\"(.+)?(.+\n.+)?.+\" {
+\"((.+)|(.+\\\n.+)?)\" {
   /* string 역슬래시 있으면 멀티라인, 없으면 그냥 */
   printf("<STRING, %s>\t\t%s\n", yytext, yytext);
   table_insert(yytext, stringtab, &string_seq);
@@ -105,7 +105,7 @@ LETANDDIGIT [a-zA-Z0-9]
   printf("<DOUBLE, %s>\t\t%s\n", yytext, yytext);
 }
 
--?[0-9]+ {
+^([+-]?(0|[1-9][0-9]*)) {
   /* integer */
   printf("<INTEGER, %s>\t\t%s\n", yytext, &yytext[(int)strlen(yytext) < 10 ? 0 : (int)strlen(yytext) - 10]);
 }
